@@ -1,0 +1,151 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  FINANCE
+  DONOR
+  MERCHANT
+}
+
+model User {
+  id                   String          @id @default(cuid())
+  name                 String?
+  email                String?         @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  activeOrgId          String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  activeOrg            Org?            @relation("ActiveOrg", fields: [activeOrgId], references: [id], onDelete: SetNull)
+  memberships          Membership[]
+  accounts             Account[]
+  sessions             Session[]
+  auditLogs            AuditLog[]      @relation("AuditActor")
+  createdOrganizations Org[]           @relation("OrgCreator")
+  invitationsCreated   Invitation[]    @relation("InvitationCreator")
+  invitationsAccepted  Invitation[]    @relation("InvitationAccepter")
+  authenticators       Authenticator[]
+
+  @@index([activeOrgId])
+}
+
+model Org {
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  name            String
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdByUser   User?        @relation("OrgCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  activeUsers     User[]       @relation("ActiveOrg")
+  memberships     Membership[]
+  auditLogs       AuditLog[]
+  invitations     Invitation[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId, role])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  orgId       String
+  actorUserId String?
+  action      String
+  targetType  String
+  targetId    String?
+  payload     Json?
+  createdAt   DateTime  @default(now())
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actorUser   User?     @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model Invitation {
+  id               String    @id @default(cuid())
+  email            String
+  token            String    @unique
+  orgId            String
+  role             Role
+  invitedByUserId  String
+  acceptedByUserId String?
+  acceptedAt       DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  org              Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedByUser    User      @relation("InvitationCreator", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  acceptedByUser   User?     @relation("InvitationAccepter", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  userId               String
+  credentialID         String  @unique
+  providerAccountId    String
+  credentialPublicKey  String  @db.Text
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
