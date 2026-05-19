@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Role } from "@prisma/client";
 import { useActionState } from "react";
 import { inviteMember } from "@/app/(app)/dashboard/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { FormState } from "@/lib/schemas/auth";
 
 const initialState: FormState = {};
@@ -22,11 +25,10 @@ export function InviteMemberForm() {
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
         <label className="block space-y-2 text-sm">
           <span>אימייל להזמנה</span>
-          <input
+          <Input
             name="email"
             type="email"
             required
-            className="tap-target w-full rounded-[12px] border border-border bg-surface px-4"
           />
           {state.fieldErrors?.email?.[0] ? (
             <span className="text-xs text-red-700">{state.fieldErrors.email[0]}</span>
@@ -57,20 +59,19 @@ export function InviteMemberForm() {
 
       {state.success ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <p>ההזמנה נוצרה בהצלחה.</p>
-          <p dir="ltr" className="mt-1 break-all text-xs">
-            {state.success}
-          </p>
+          <p>ההזמנה נוצרה ונשמרה בתיבת הפיתוח.</p>
+          <Link href={state.success} className="mt-1 inline-block font-semibold underline">
+            פתיחת הודעת ההזמנה
+          </Link>
         </div>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="tap-target rounded-full bg-primary px-5 text-base font-semibold text-white hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? "יוצר הזמנה..." : "יצירת הזמנה"}
-      </button>
+      </Button>
     </form>
   );
 }

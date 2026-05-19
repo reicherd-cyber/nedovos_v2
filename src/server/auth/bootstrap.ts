@@ -15,7 +15,7 @@ async function createOrgForUser(tx: Tx, user: Pick<User, "id" | "name" | "email"
   const org = await tx.org.create({
     data: {
       name: orgLabel,
-      slug: await createUniqueOrgSlug(orgLabel),
+      slug: await createUniqueOrgSlug(orgLabel, tx),
       createdByUserId: user.id,
     },
   });

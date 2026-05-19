@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Role } from "@prisma/client";
 import { auth } from "@/auth";
 import { InviteMemberForm } from "@/components/dashboard/InviteMemberForm";
@@ -27,6 +28,13 @@ export default async function DashboardPage({
   const params = await searchParams;
   const activeOrg = await prisma.org.findUnique({
     where: { id: session.user.activeOrgId },
+  });
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      email: true,
+      emailVerified: true,
+    },
   });
 
   const invitations = await prisma.invitation.findMany({
@@ -79,6 +87,21 @@ export default async function DashboardPage({
         </p>
       ) : null}
 
+      {currentUser?.email && !currentUser.emailVerified ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+          <p className="font-medium">כתובת האימייל עדיין לא אומתה.</p>
+          <p className="mt-1 leading-7">
+            מומלץ להשלים את האימות לפני שימוש קבוע במערכת.
+          </p>
+          <Link
+            href={`/verify-email/request?email=${encodeURIComponent(currentUser.email)}`}
+            className="mt-3 inline-flex font-semibold text-primary underline"
+          >
+            שליחת קישור אימות חדש
+          </Link>
+        </div>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-3">
         <article className="surface-card p-5">
           <p className="text-sm text-muted">חברים בארגון</p>
@@ -93,6 +116,16 @@ export default async function DashboardPage({
         <article className="surface-card p-5">
           <p className="text-sm text-muted">הזמנות פתוחות</p>
           <p className="mt-3 text-3xl font-semibold">{invitations.length}</p>
+        </article>
+        <article className="surface-card p-5">
+          <p className="text-sm text-muted">מודול תורמים</p>
+          <p className="mt-3 text-lg font-semibold">שלב 3 מוכן לעבודה</p>
+          <Link
+            href="/dashboard/donors"
+            className="mt-4 inline-flex text-sm font-semibold text-primary underline"
+          >
+            מעבר לניהול תורמים
+          </Link>
         </article>
       </section>
 
@@ -127,8 +160,14 @@ export default async function DashboardPage({
                 >
                   <p className="font-medium">{invitation.email}</p>
                   <p className="mt-1 text-xs text-muted">
-                    /accept-invite/{invitation.token}
+                    {roleLabels[invitation.role]} | {new Date(invitation.createdAt).toLocaleDateString("he-IL")}
                   </p>
+                  <Link
+                    href={`/dev/outbox?email=${encodeURIComponent(invitation.email)}&kind=invitation`}
+                    className="mt-2 inline-flex text-xs font-semibold text-primary underline"
+                  >
+                    פתיחת הודעת ההזמנה בסביבת הפיתוח
+                  </Link>
                 </div>
               ))
             )}
@@ -140,7 +179,7 @@ export default async function DashboardPage({
         <section className="surface-card p-5 sm:p-6">
           <h2 className="text-2xl font-semibold">הזמנת משתמש חדש</h2>
           <p className="mt-2 text-sm leading-7 text-muted">
-            כרגע יצירת ההזמנה מחזירה קישור ישיר. שליחת אימייל בפועל תתווסף בשלב מאוחר יותר.
+            יצירת הזמנה שומרת הודעת אימייל בתיבת הפיתוח המקומית, כולל קישור הקבלה המלא.
           </p>
           <div className="mt-5">
             <InviteMemberForm />

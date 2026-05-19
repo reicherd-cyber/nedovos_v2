@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { signUpSchema, type FormState } from "@/lib/schemas/auth";
 import { writeAuditLog } from "@/server/audit/write-audit-log";
+import { sendVerificationEmail } from "@/server/auth/mailer";
 import { createUniqueOrgSlug } from "@/server/auth/slug";
+import { getDevOutboxUrl } from "@/server/dev-email";
 import { prisma } from "@/server/prisma";
 
 export async function registerUser(
@@ -84,7 +86,14 @@ export async function registerUser(
     return user;
   });
 
-  redirect(
-    `/sign-in?registered=1&email=${encodeURIComponent(createdUser.email ?? "")}`,
-  );
+  if (createdUser.email) {
+    await sendVerificationEmail({
+      email: createdUser.email,
+      name: createdUser.name,
+    });
+
+    redirect(getDevOutboxUrl(createdUser.email, "verify-email"));
+  }
+
+  redirect("/sign-in");
 }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/schemas/auth";
 import { requireRole } from "@/lib/auth/roles";
 import { writeAuditLog } from "@/server/audit/write-audit-log";
+import { sendInvitationEmail } from "@/server/auth/mailer";
 import { prisma } from "@/server/prisma";
 
 export async function switchActiveOrg(formData: FormData) {
@@ -97,9 +98,19 @@ export async function inviteMember(
     },
   });
 
+  const org = await prisma.org.findUnique({
+    where: { id: session.user.activeOrgId },
+  });
+
+  await sendInvitationEmail({
+    email: invitation.email,
+    orgName: org?.name ?? "הארגון",
+    invitationUrl: `${process.env.NEXTAUTH_URL ?? "http://localhost:3005"}/accept-invite/${invitation.token}`,
+  });
+
   revalidatePath("/dashboard");
 
   return {
-    success: `/accept-invite/${invitation.token}`,
+    success: `/dev/outbox?email=${encodeURIComponent(invitation.email)}&kind=invitation`,
   };
 }

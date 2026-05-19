@@ -14,22 +14,10 @@ export async function acceptInvitation(
   _previousState: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const parsed = acceptInvitationSchema.safeParse({
-    token: formData.get("token"),
-    name: formData.get("name"),
-    password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
-  });
-
-  if (!parsed.success) {
-    return {
-      error: "יש לתקן את השדות המסומנים.",
-      fieldErrors: parsed.error.flatten().fieldErrors,
-    };
-  }
+  const token = String(formData.get("token") ?? "");
 
   const invitation = await prisma.invitation.findUnique({
-    where: { token: parsed.data.token },
+    where: { token },
   });
 
   if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) {
@@ -39,7 +27,35 @@ export async function acceptInvitation(
   }
 
   const session = await auth();
-  const passwordHash = await hash(parsed.data.password, 12);
+
+  const parsed =
+    session?.user?.id
+      ? {
+          success: true as const,
+          data: {
+            token,
+            name: session.user.name ?? "",
+            password: "",
+            confirmPassword: "",
+          },
+        }
+      : acceptInvitationSchema.safeParse({
+          token,
+          name: formData.get("name"),
+          password: formData.get("password"),
+          confirmPassword: formData.get("confirmPassword"),
+        });
+
+  if (!parsed.success) {
+    return {
+      error: "יש לתקן את השדות המסומנים.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const passwordHash = parsed.data.password
+    ? await hash(parsed.data.password, 12)
+    : null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -58,11 +74,27 @@ export async function acceptInvitation(
           data: {
             name: parsed.data.name,
             email: invitation.email,
-            passwordHash,
+            passwordHash: passwordHash ?? undefined,
+            emailVerified: new Date(),
           },
         });
 
         userId = createdUser.id;
+      } else {
+        const existingUser = await tx.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!existingUser || existingUser.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+          throw new Error("EMAIL_MISMATCH");
+        }
+
+        if (!existingUser.emailVerified) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { emailVerified: new Date() },
+          });
+        }
       }
 
       const existingMembership = await tx.membership.findUnique({
@@ -113,6 +145,12 @@ export async function acceptInvitation(
     if (error instanceof Error && error.message === "EXISTING_USER") {
       return {
         error: "כבר קיים משתמש עם האימייל הזה. יש להתחבר לחשבון הקיים ולקבל שוב את ההזמנה.",
+      };
+    }
+
+    if (error instanceof Error && error.message === "EMAIL_MISMATCH") {
+      return {
+        error: "החשבון המחובר אינו תואם לכתובת האימייל של ההזמנה.",
       };
     }
 

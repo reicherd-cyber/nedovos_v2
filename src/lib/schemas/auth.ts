@@ -40,6 +40,22 @@ export const acceptInvitationSchema = z
     message: "אימות הסיסמה לא תואם.",
   });
 
+export const emailSchema = z.object({
+  email: z.email().trim().toLowerCase(),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1),
+    email: z.email().trim().toLowerCase(),
+    password: z.string().min(8, "הסיסמה חייבת להכיל לפחות 8 תווים."),
+    confirmPassword: z.string().min(8, "יש לאשר את הסיסמה."),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "אימות הסיסמה לא תואם.",
+  });
+
 export type FormState = {
   error?: string;
   success?: string;

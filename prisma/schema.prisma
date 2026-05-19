@@ -38,17 +38,97 @@ model User {
 }
 
 model Org {
-  id              String       @id @default(cuid())
-  slug            String       @unique
-  name            String
+  id                   String       @id @default(cuid())
+  slug                 String       @unique
+  name                 String
+  createdByUserId      String?
+  publicListingEnabled Boolean      @default(false)
+  publicCategory       String?
+  publicSubtitle       String?
+  publicDonationOptions Json?
+  directoryOrder       Int?         @unique
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  createdByUser        User?        @relation("OrgCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  activeUsers          User[]       @relation("ActiveOrg")
+  memberships          Membership[]
+  auditLogs            AuditLog[]
+  invitations          Invitation[]
+  donors               Donor[]
+  donorTags            DonorTag[]
+  donorNotes           DonorNote[]
+  donationIntents      DonationIntent[]
+
+  @@index([publicListingEnabled])
+}
+
+model DonationIntent {
+  id            String   @id @default(cuid())
+  orgId         String
+  donorFullName String
+  donorEmail    String?
+  donorPhone    String?
+  amountMinor   Int
+  currency      String   @default("ILS")
+  purpose       String
+  recurring     Boolean  @default(false)
+  note          String?  @db.Text
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([orgId, status])
+}
+
+model Donor {
+  id           String      @id @default(cuid())
+  orgId        String
+  fullName     String
+  nationalId   String?
+  email        String?
+  phone        String?
+  addressLine1 String?
+  city         String?
+  language     String?
+  customFields Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  org          Org         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tags         DonorTag[]
+  notes        DonorNote[]
+
+  @@index([orgId, fullName])
+  @@index([orgId, email])
+  @@index([orgId, phone])
+}
+
+model DonorTag {
+  id        String   @id @default(cuid())
+  orgId     String
+  donorId   String
+  label     String
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  donor     Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@unique([donorId, label])
+  @@index([orgId, label])
+}
+
+model DonorNote {
+  id              String   @id @default(cuid())
+  orgId           String
+  donorId         String
   createdByUserId String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  createdByUser   User?        @relation("OrgCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  activeUsers     User[]       @relation("ActiveOrg")
-  memberships     Membership[]
-  auditLogs       AuditLog[]
-  invitations     Invitation[]
+  body            String   @db.Text
+  createdAt       DateTime @default(now())
+  org             Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  donor           Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([donorId, createdAt])
 }
 
 model Membership {

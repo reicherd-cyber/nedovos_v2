@@ -2,17 +2,20 @@
 
 Hebrew/RTL multi-tenant SaaS for synagogues and Jewish nonprofits.
 
-This repository is being built in the order defined in [BUILD-PLAN.md](./BUILD-PLAN.md). The current implementation is focused on **Stage 1: Foundation and RTL skeleton**.
+This repository is being built in the order defined in [BUILD-PLAN.md](./BUILD-PLAN.md). The current codebase now covers the local implementation of **Stage 1** and **Stage 2**.
 
 ## Current state
 
 - `Next.js 16` App Router application in the repo root
-- `TypeScript` + `Tailwind CSS`
+- `TypeScript` + `Tailwind CSS` + shadcn-style shared UI primitives
 - Root layout configured for `dir="rtl"` and `lang="he"`
 - `Heebo` loaded as the primary Hebrew UI font
-- First mobile-first Hebrew landing page in `src/app/page.tsx`
-- Prisma initialized for MySQL
+- Mobile-first Hebrew landing page in `src/app/page.tsx`
+- Prisma initialized for MySQL with multi-tenant auth models and migrations
+- Auth.js email/password flow, optional Google sign-in, org switcher, invitations, audit logging
+- Password reset, email verification, and local dev-email outbox flows
 - CI workflow scaffolded for lint, typecheck, build, and Prisma schema validation
+- Sentry package and minimal app wiring are in place; DSN/project values still come from environment
 
 ## Current runtime facts
 
@@ -54,7 +57,7 @@ copy .env.example .env
 npm run dev
 ```
 
-5. Open `http://localhost:3000`
+5. Open `http://localhost:3005`
 
 ## Useful commands
 
@@ -66,15 +69,21 @@ npm run build
 npm run prisma:validate
 ```
 
-## Stage 1 checklist
+## Auth and Dev Email Flow
 
-- Done: App scaffold, RTL layout, Hebrew font, starter landing page
-- Done: Prisma initialization
-- Done: CI scaffold
-- Done: DigitalOcean MySQL connection source identified
-- Pending: Vercel deployment
-- Pending: Sentry setup
-- Pending: shadcn/ui initialization
+- `GET /sign-up` creates a new org and queues a verification email into `GET /dev/outbox`
+- `GET /sign-in` supports credentials and optional Google sign-in
+- `GET /forgot-password` queues a password reset email into the local outbox
+- `GET /verify-email/request` queues a fresh verification email into the local outbox
+- `GET /accept-invite/[token]` supports both new invited users and existing invited users
+
+## Stage Status
+
+- Stage 1 done locally: app scaffold, RTL layout, Hebrew font, shared UI primitives, Prisma setup, CI, Sentry wiring, README
+- Stage 2 done locally: auth, organizations, roles, invitations, password reset, email verification, audit logging
+- External follow-up: Vercel project connection and production env vars
+- External follow-up: replace local Sentry placeholder env values with real DSNs/project settings
+- External follow-up: replace `sslaccept=accept_invalid_certs` with proper CA verification before production or CI DB access
 
 ## Key project rules
 

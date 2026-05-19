@@ -4,6 +4,42 @@ A phased plan to take the Nedarim+ style platform from empty repo to feature-com
 
 ---
 
+## Current status
+
+- `[x]` Stage 1 local foundation complete
+- `[x]` Stage 2 local auth, organizations, roles, invitations, and verification flows complete
+- `[x]` Homepage reference pass complete with a directory-style institutional layout at `/`
+- `[x]` Homepage directory entries moved into the `Org` table and loaded from MySQL
+- `[~]` Stage 3 donor CRM has started: schema, list page, detail page, tags, notes, and CSV import are in place, but delete/archive and deeper polish are still pending
+- `[~]` Stage 4 has partial groundwork only: the public home page, directory presentation, first `/orgs/[slug]` public page, and first `/orgs/[slug]/donate` intent-saving flow are in place, but full payment, contact persistence, and SEO/public pages are still pending
+- `[ ]` External production setup still pending: Vercel production wiring, real Sentry DSN, production-grade DB TLS verification
+
+### Homepage reference spec (implemented)
+
+The home page at `/` should stay close to the provided reference image:
+
+- outer light-gray shell with a centered rounded container
+- centered circular `Nedovos` logo at the top
+- memorial / support badge area near the top edge
+- white pill navigation buttons in one desktop row and horizontal scroll on mobile
+- a large white central panel for search and results
+- centered RTL search box with a compact search button
+- a dense results grid of matching institution cards
+- every card must use the same shape:
+  - white outer tile
+  - inner rounded square logo frame
+  - default `Nedovos` logo inside the frame
+  - institution name under the frame
+- card data now comes from `Org` rows where `publicListingEnabled = true`
+- homepage ordering now comes from `Org.directoryOrder`, which should stay unique for curated entries
+- homepage search currently matches `title` and `subtitle` only, and intentionally ignores category
+- clicking a card now leads to `/orgs/[slug]`
+- public org option cards now lead to `/orgs/[slug]/donate?option=...`
+- mobile layout keeps the same visual language and collapses the grid to 2 columns
+- tone should feel institutional, simple, dense, and service-oriented rather than promotional
+
+---
+
 ## Recommended tech stack
 
 Picked for a **solo developer** building a Hebrew/RTL multi-tenant SaaS with payments, marketing pages, and a donor portal.
@@ -72,6 +108,8 @@ Then:
 
 ---
 
+**Current repo marker:** `[x]` Local implementation complete. This repo now has the RTL app shell, MySQL-backed Prisma setup, shared UI primitives, CI, README, and local Sentry wiring. External production deployment tasks remain open.
+
 ## Stage 2 — Auth, organizations, and roles
 
 **Goal:** Multi-tenant authentication. Users belong to organizations (`Org`) with roles.
@@ -84,6 +122,14 @@ Then:
 - Middleware: `requireRole('admin' | 'finance' | 'donor' | 'merchant')`
 - Invitation flow (admin invites user by email → magic link)
 - Audit-log helper that writes to `AuditLog` on every privileged action
+
+**Homepage design direction locked in:** when Stage 4 is built out, keep the current home-page reference direction rather than switching back to a generic startup hero:
+- centered circular logo
+- institutional top pill navigation
+- white search/results panel
+- uniform institution tiles with the shared Nedovos logo card pattern
+- mobile 2-column grid
+- restrained gray/white palette with minimal accents
 
 **How to begin**
 1. Define Prisma schema (User, Org, Membership with role enum, AuditLog).
@@ -98,6 +144,8 @@ Then:
 **Why now:** every other module needs `org_id` scoping. Get the tenant model right before adding data tables.
 
 ---
+
+**Current repo marker:** `[x]` Local implementation complete. Password reset, email verification, invitation acceptance, audit logging, org switching, and protected dashboard routing are implemented. Email sending currently uses a local dev outbox instead of a live provider.
 
 ## Stage 3 — Donor CRM (core)
 
@@ -122,6 +170,8 @@ Then:
 
 **Why now:** the public donation page (stage 4) will create donors on the fly; you need the data model first.
 
+**Current repo marker:** `[~]` Started. The repo now includes donor models, org-scoped repository functions, `/dashboard/donors`, donor detail/edit pages, internal notes, and a basic CSV import path. Delete/archive, pagination, and richer import UX are still open.
+
 ---
 
 ## Stage 4 — Marketing site + public donation page (no payments yet)
@@ -136,6 +186,8 @@ Then:
 - Privacy + accessibility statement pages
 - `sitemap.xml`, `robots.txt`, OpenGraph meta
 - Contact form persists to DB and sends an email to the right department
+
+**Current repo marker:** `[~]` Partial implementation only. The `/` page exists now, follows the approved reference layout, is backed by public `Org` rows from MySQL, links into `/orgs/[slug]`, and those public organization pages now route into a first `/orgs/[slug]/donate` form that stores `DonationIntent` rows. The rest of Stage 4 is still open: `/orgs`, richer public copy, contact persistence, SEO pages, sitemap, robots, and the later Stage 5 payment gateway flow.
 
 **How to begin**
 1. Design system: pick color palette, typography scale; build base components (button, input, card).

@@ -15,6 +15,23 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   const params = await searchParams;
   const email = typeof params.email === "string" ? params.email : "";
+  const messages: string[] = [];
+
+  if (params.verified === "1") {
+    messages.push("כתובת האימייל אומתה בהצלחה. אפשר להתחבר.");
+  }
+
+  if (params.passwordReset === "1") {
+    messages.push("הסיסמה עודכנה. אפשר להתחבר עם הסיסמה החדשה.");
+  }
+
+  if (params.invited === "1") {
+    messages.push("ההזמנה התקבלה. אפשר להתחבר ולעבוד בארגון.");
+  }
+
+  if (params.verificationError === "1") {
+    messages.push("קישור האימות אינו תקף או שפג תוקפו. אפשר לבקש שליחה חוזרת.");
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
@@ -23,6 +40,8 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
         )}
         defaultEmail={email}
+        messages={messages}
+        verificationLink={null}
       />
     </main>
   );

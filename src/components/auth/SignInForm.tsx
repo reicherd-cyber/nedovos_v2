@@ -4,15 +4,22 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 type SignInFormProps = {
   allowGoogle: boolean;
   defaultEmail?: string;
+  messages: string[];
+  verificationLink?: string | null;
 };
 
 export function SignInForm({
   allowGoogle,
   defaultEmail = "",
+  messages,
+  verificationLink,
 }: SignInFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,68 +50,85 @@ export function SignInForm({
   }
 
   return (
-    <div className="surface-card w-full max-w-md p-6 sm:p-8">
-      <div className="space-y-2 text-center">
-        <p className="text-sm text-muted">כניסה לאזור הארגון</p>
-        <h1 className="text-3xl font-semibold">התחברות</h1>
-        <p className="text-sm leading-7 text-muted">
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <CardDescription>כניסה לאזור הארגון</CardDescription>
+        <CardTitle>התחברות</CardTitle>
+        <CardDescription>
           כניסה עם אימייל וסיסמה, או עם Google אם הוגדר עבור הסביבה.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={handleSubmit} className="space-y-4">
+          <label className="block space-y-2 text-sm">
+            <span>אימייל</span>
+            <Input name="email" type="email" required defaultValue={defaultEmail} />
+          </label>
 
-      <form action={handleSubmit} className="mt-6 space-y-4">
-        <label className="block space-y-2 text-sm">
-          <span>אימייל</span>
-          <input
-            name="email"
-            type="email"
-            required
-            defaultValue={defaultEmail}
-            className="tap-target w-full rounded-[12px] border border-border bg-surface px-4 outline-none ring-0"
-          />
-        </label>
+          <label className="block space-y-2 text-sm">
+            <span>סיסמה</span>
+            <Input name="password" type="password" required />
+          </label>
 
-        <label className="block space-y-2 text-sm">
-          <span>סיסמה</span>
-          <input
-            name="password"
-            type="password"
-            required
-            className="tap-target w-full rounded-[12px] border border-border bg-surface px-4 outline-none ring-0"
-          />
-        </label>
+          {messages.length > 0 ? (
+            <div className="space-y-2">
+              {messages.map((message) => (
+                <p
+                  key={message}
+                  className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                >
+                  {message}
+                </p>
+              ))}
+            </div>
+          ) : null}
 
-        {error ? (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
+          {verificationLink ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p>קישור האימות מוכן בתיבת הפיתוח.</p>
+              <Link href={verificationLink} className="mt-1 inline-block font-semibold underline">
+                פתיחת תיבת הפיתוח
+              </Link>
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
+
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "מתחבר..." : "התחברות"}
+          </Button>
+        </form>
+
+        {allowGoogle ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 w-full"
+            onClick={() => void signIn("google", { callbackUrl })}
+          >
+            כניסה עם Google
+          </Button>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="tap-target w-full rounded-full bg-primary px-5 text-base font-semibold text-white hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isPending ? "מתחבר..." : "התחברות"}
-        </button>
-      </form>
-
-      {allowGoogle ? (
-        <button
-          type="button"
-          onClick={() => void signIn("google", { callbackUrl })}
-          className="tap-target mt-3 w-full rounded-full border border-border bg-surface-secondary px-5 text-base font-semibold text-foreground hover:bg-surface"
-        >
-          כניסה עם Google
-        </button>
-      ) : null}
-
-      <p className="mt-6 text-center text-sm text-muted">
-        אין לך חשבון?{" "}
-        <Link href="/sign-up" className="font-semibold text-primary">
-          פתיחת ארגון חדש
-        </Link>
-      </p>
-    </div>
+        <div className="mt-6 flex flex-col gap-2 text-center text-sm text-muted">
+          <Link href="/forgot-password" className="font-semibold text-primary">
+            שכחתי סיסמה
+          </Link>
+          <Link href={`/verify-email/request${defaultEmail ? `?email=${encodeURIComponent(defaultEmail)}` : ""}`} className="font-semibold text-primary">
+            שליחה חוזרת של אימות אימייל
+          </Link>
+          <p>
+            אין לך חשבון?{" "}
+            <Link href="/sign-up" className="font-semibold text-primary">
+              פתיחת ארגון חדש
+            </Link>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
